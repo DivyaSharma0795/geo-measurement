@@ -22,9 +22,16 @@ The current analysis uses three pages of traditional (baseline) marketing copies
 1. **Content pairs** (`content/`): three topics, each with a *baseline* version (typical brand-led marketing copy) and a *GEO-optimized* version applying the tactics with the strongest published evidence behind them - an answer-first opening, question-shaped subheadings that mirror real search queries, specific and sourced facts in place of vague claims, and scannable structure
 2. **Question bank** (`data/question_bank.csv`): 30 realistic questions a first-time renter or relocating professional might actually ask an AI assistant, split across the three topics and tagged `informational` vs. `transactional` (comparison/"best of" queries)
 3. **LLM-judge harness** (`src/judge.py`): for each question, an LLM is shown both versions (order randomized to control for position bias) and asked to rate each page's citation-likelihood 0-100, the same way it would implicitly weigh sources when constructing a real AI-generated answer. Ships with a `--dry-run` offline heuristic fallback (`src/heuristic_audit.py`) so the pipeline runs end-to-end with no API key
-4. **Paired significance test** (`src/analyze_results.py`): each question is a matched pair (baseline score, optimized score) - a **Wilcoxon signed-rank test** on the paired scores, broken out by query type and topic
+4. **Model Iteration & Evaluation Shift:** The judge harness was evolved across multiple model providers to balance cost and rate limits:
+   - Initial pilot tests with Claude
+   - Experiments with Gemini (`gemini-3.6-flash`), which hit strict daily free-tier request quotas.
+   - Migration to **Groq API** (`openai/gpt-oss-120b` / LLaMA-based architectures) for high-throughput, rate-limit-free evaluation
+5. **Paired significance test** (`src/analyze_results.py`): Each question is a matched pair (baseline score, optimized score) analyzed via a **Wilcoxon signed-rank test** on the paired scores, broken out by query type and topic
 
-## Results (pilot run, n=30)
+
+### Results 
+
+#### Pilot run (n=30)
 
 The `data/pilot_judgments.csv` in this repo is a real pilot run - Claude acting as the judge model, following the exact rubric in `judge.py`, on all 30 questions.
 
@@ -34,17 +41,41 @@ The `data/pilot_judgments.csv` in this repo is a real pilot run - Claude acting 
 | Informational (n=21) | - | - | +82.5 pts | 100% | p < 0.0001 |
 | Transactional (n=9) | - | - | +28.7 pts | 89% | p = 0.0078 |
 
+#### LLaMA-3 / Groq Run (n=30)
+
+Running the evaluation harness using the Groq provider over all 30 paired questions produced the following statistical results:
+
+| Segment | Count (n) | Baseline Mean | Optimized Mean | Mean Lift | Win Rate | Wilcoxon Test |
+|---|---|---|---|---|---|---|
+| **Overall** | **30** | **18.1** | **75.5** | **+57.4 pts** | **90%** | **W = 13.0, p = 0.00001** |
+| Informational | 21 | 11.5 | 86.8 | +75.2 pts | 100% | W = 0.0, p = 0.00005 |
+| Transactional | 9 | 33.3 | 49.2 | +15.9 pts | 67% | W = 11.0, p = 0.30078 |
+
+### By Topic Breakdown
+
+| Topic | Count (n) | Mean Lift | Win Rate |
+|---|---|---|---|
+| International Relocation | 10 | +59.5 pts | 90% |
+| Moving Checklist | 10 | +54.8 pts | 90% |
+| Renters Insurance | 10 | +58.0 pts | 90% |
+
+
 ![Citation lift summary](results/citation_lift_summary.png)
 
-**The headline lift is real but the interesting part is the segment split.** GEO restructuring helps most where it's designed to help - direct, answer-shaped informational questions ("what does renters insurance cover") saw the biggest gains, because the optimized pages have a header and a direct answer for almost exactly that question. Transactional / "best of" / comparison queries ("best renters insurance providers 2026") showed a much smaller lift, because no amount of restructuring fixes a content-*type* mismatch: a single-brand FAQ page, however well structured, is a poor fit for a query that expects a roundup of competitors. One question (`Q20`) came out a near-tie for exactly this reason. 
+
+**Key Finding:** The headline lift (+57.4 pts overall) confirms that structural GEO changes produce a statistically significant increase in citation scores ($p = 0.00001$). However, the segment breakdown reveals a clear boundary:
+- **Informational queries** saw massive gains (**+75.2 pts lift, 100% win rate**), as answer-first formatting and question-shaped headers directly match search engine extraction patterns.
+- **Transactional / "Best-of" queries** saw a much smaller, non-statistically-significant lift (**+15.9 pts lift, $p = 0.30078$**). Restructuring single-brand content cannot resolve a core *content-type mismatch* when the user query expects a round-up of multiple competing providers.
+
 
 **The practical takeaway: GEO tactics are a content-structure fix for content-structure problems - they don't substitute for publishing the right content type for the query intent in the first place.**
 
+
 ### Limitations
 
-- **This is a judge-model proxy, not scraped AI Overviews.** It measures "would an LLM judge say this looks citable," which is a reasonable stand-in but not a guarantee of real-world citation rates - the same gap between a lab experiment and a field result
-- **Single judge, single pilot run, n=30.** Before trusting this beyond "the method works," the natural next steps are: run it against a live model via `judge.py` (no `--dry-run`) at a larger question-bank size, and ideally cross-check with a second judge model to rule out one model's idiosyncratic preferences
-- **`heuristic_audit.py` is a structural sanity check, not a substitute for the LLM judge** - it can't tell whether content actually *answers* a question, only whether it's shaped like content that would
+- **Proxy Metric:** Measures LLM judge preference rather than live Google AI Overviews/Perplexity scrapers
+- **Model Variability:** While testing shifted from Claude to Gemini to Groq/LLaMA to overcome API rate limits, individual model judges may retain minor structural biases
+- **`heuristic_audit.py` Context:** The rule-based auditor checks structural syntax (headers, bullet density, numbers), serving as a sanity check before running live LLM judging
 
 ### Reproduce or extend
 
@@ -88,3 +119,87 @@ geo-citation-lift/
 **Tools:** Python, pandas, scipy, matplotlib, Anthropic API · 
 
 **Methods:** Paired Experimental Design, Wilcoxon Signed-Rank Test, LLM-as-Judge Evaluation, Generative Engine Optimization (GEO)
+
+
+# GEO Citation Lift: Does Optimizing Content for AI Search Actually Work?
+
+### Problem statement
+
+A growing share of searches never reach a website at all — the user reads an AI-generated answer (Google AI Overviews, ChatGPT, Perplexity) and moves on. For a content or marketing team, the question is no longer just "does this page rank," but "does this page get *cited* when an AI answers the question it addresses." 
+
+Generative Engine Optimization (GEO) is the emerging practice of structuring content for that outcome — but most GEO advice is a list of tactics with no attached measurement. This project treats it as a measurement problem instead — the question asked here is **does restructuring content around known GEO tactics actually increase citation-likelihood, and does the effect hold up the same way across different kinds of questions?**
+
+### Business context (simulated)
+
+SettleIn is a fictional relocation-services company that provides moving services, and their website contains pages for new movers including move-in checklists, details on renters insurance, and international relocation. In today's AI-summarized world, many potential users prefer the AI summary provided directly on the search engine. 
+
+To ensure that resources provided by SettleIn reach their targeted audience, a data scientist recommends GEO (Generative Engine Optimization) on their pages to increase visibility in AI Overviews. 
+
+The current analysis uses three pages of traditional (baseline) marketing copy, each rewritten from typical brand-forward copy into a GEO-optimized version:
+  - Move-in checklists
+  - Renters insurance
+  - International relocation
+
+### Method
+
+1. **Content pairs** (`content/`): Three topics, each with a *baseline* version (typical brand-led marketing copy) and a *GEO-optimized* version applying the tactics with the strongest published evidence behind them — an answer-first opening, question-shaped subheadings that mirror real search queries, specific and sourced facts in place of vague claims, and scannable structure.
+2. **Question bank** (`data/question_bank.csv`): 30 realistic questions a first-time renter or relocating professional might actually ask an AI assistant, split across the three topics and tagged `informational` vs. `transactional` (comparison/"best of" queries).
+3. **LLM-judge harness** (`src/judge.py`): For each question, an LLM is shown both versions (order randomized to control for position bias) and asked to rate each page's citation-likelihood 0–100, the same way it would implicitly weigh sources when constructing a real AI-generated answer. Ships with a `--dry-run` offline heuristic fallback (`src/heuristic_audit.py`) so the pipeline runs end-to-end with no API key.
+4. **Model Iteration & Evaluation Shift:** The judge harness was evolved across multiple model providers to balance cost and rate limits:
+   - Initial pilot tests with Claude.
+   - Experiments with Gemini (`gemini-3.6-flash`), which hit strict daily free-tier request quotas.
+   - Migration to **Groq API** (`openai/gpt-oss-120b` / LLaMA-based architectures) for high-throughput, rate-limit-free evaluation.
+5. **Paired significance test** (`src/analyze_results.py`): Each question is a matched pair (baseline score, optimized score) analyzed via a **Wilcoxon signed-rank test** on the paired scores, broken out by query type and topic.
+
+---
+
+## Results (LLaMA-3 / Groq Run, n=30)
+
+Running the evaluation harness using the Groq provider over all 30 paired questions produced the following statistical results:
+
+| Segment | Count (n) | Baseline Mean | Optimized Mean | Mean Lift | Win Rate | Wilcoxon Test |
+|---|---|---|---|---|---|---|
+| **Overall** | **30** | **18.1** | **75.5** | **+57.4 pts** | **90%** | **W = 13.0, p = 0.00001** |
+| Informational | 21 | 11.5 | 86.8 | +75.2 pts | 100% | W = 0.0, p = 0.00005 |
+| Transactional | 9 | 33.3 | 49.2 | +15.9 pts | 67% | W = 11.0, p = 0.30078 |
+
+### By Topic Breakdown
+
+| Topic | Count (n) | Mean Lift | Win Rate |
+|---|---|---|---|
+| International Relocation | 10 | +59.5 pts | 90% |
+| Moving Checklist | 10 | +54.8 pts | 90% |
+| Renters Insurance | 10 | +58.0 pts | 90% |
+
+![Citation lift summary](results/citation_lift_summary.png)
+
+**Key Finding:** The headline lift (+57.4 pts overall) confirms that structural GEO changes produce a statistically significant increase in citation scores ($p = 0.00001$). However, the segment breakdown reveals a clear boundary:
+- **Informational queries** saw massive gains (**+75.2 pts lift, 100% win rate**), as answer-first formatting and question-shaped headers directly match search engine extraction patterns.
+- **Transactional / "Best-of" queries** saw a much smaller, non-statistically-significant lift (**+15.9 pts lift, $p = 0.30078$**). Restructuring single-brand content cannot resolve a core *content-type mismatch* when the user query expects a round-up of multiple competing providers.
+
+---
+
+### Limitations
+
+- **Proxy Metric:** Measures LLM judge preference rather than live Google AI Overviews/Perplexity scrapers.
+- **Model Variability:** While testing shifted from Claude to Gemini to Groq/LLaMA to overcome API rate limits, individual model judges may retain minor structural biases.
+- **`heuristic_audit.py` Context:** The rule-based auditor checks structural syntax (headers, bullet density, numbers), serving as a sanity check before running live LLM judging.
+
+---
+
+### Reproduce or extend
+
+```bash
+pip install -r requirements.txt
+
+# Run the offline heuristic judge end-to-end (No API key required)
+python src/judge.py --content-dir content --questions data/question_bank.csv \
+    --out data/judgments_dryrun.csv --dry-run
+
+# Run the live LLM judge using Groq API
+export GROQ_API_KEY="your_groq_api_key_here"
+python src/judge.py --content-dir content --questions data/question_bank.csv \
+    --out data/judgments.csv --model openai/gpt-oss-120b
+
+# Analyze results & generate chart
+python src/analyze_results.py data/judgments.csv --chart results/citation_lift_summary.png

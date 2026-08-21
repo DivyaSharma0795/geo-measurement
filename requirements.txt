@@ -1,0 +1,4 @@
+pandas>=2.0
+scipy>=1.11
+matplotlib>=3.8
+anthropic>=0.40   # only needed for judge.py in live mode (not --dry-run)

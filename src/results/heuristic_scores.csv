@@ -1,0 +1,7 @@
+file,geo_score,answer_first_note,question_headers_note,specific_facts_note,attribution_note,scannability_note
+international_relocation_baseline.md,0.0,no direct-answer marker in first ~60 words,0/1 headers are question-shaped,0 specific figures across 193 words,no attribution line,0 list lines out of 6 content lines
+international_relocation_optimized.md,88.6,direct-answer marker found in opening,3/7 headers are question-shaped,24 specific figures across 405 words,attribution line present,9 list lines out of 21 content lines
+moving_checklist_baseline.md,0.0,no direct-answer marker in first ~60 words,0/1 headers are question-shaped,0 specific figures across 245 words,no attribution line,0 list lines out of 6 content lines
+moving_checklist_optimized.md,87.5,direct-answer marker found in opening,3/8 headers are question-shaped,16 specific figures across 372 words,attribution line present,12 list lines out of 25 content lines
+renters_insurance_baseline.md,0.0,no direct-answer marker in first ~60 words,0/1 headers are question-shaped,0 specific figures across 193 words,no attribution line,0 list lines out of 6 content lines
+renters_insurance_optimized.md,91.6,direct-answer marker found in opening,7/7 headers are question-shaped,9 specific figures across 323 words,attribution line present,3 list lines out of 18 content lines
