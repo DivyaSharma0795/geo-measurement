@@ -17,6 +17,48 @@ The current analysis uses three pages of traditional (baseline) marketing copies
   -  renters insurance
   -  international relocation
 
+### Visual Example: Baseline vs. GEO-Optimized Structure
+
+To demonstrate how Generative Engine Optimization (GEO) transforms brand marketing copy into AI-citable content, here is a direct side-by-side comparison of the **International Relocation** page pair:
+
+#### 1. Side-by-Side Content Comparison
+
+| **Baseline Version (`content/international_relocation_baseline.md`)** | **GEO-Optimized Version** |
+| :--- | :--- |
+| **Headline:** *Your World, Wherever You Go - SettleIn Global* | **Headline:** *International Relocation Checklist: What to Do 3 Months Out to Move-In* |
+| **Opening Paragraph:**<br>"Moving abroad is one of life's biggest adventures, and at SettleIn, we're honored to be part of your journey. An international move brings a mix of excitement and uncertainty..." *(Vague, brand-forward introductory fluff)* | **Opening Paragraph (Answer-First):**<br>"**Quick answer:** Start visa and document work 3 months ahead - it's the step most likely to delay a move. Book an international shipper 6-8 weeks out, since ocean freight typically takes 4-8 weeks in transit..." *(Direct, extractable answer)* |
+| **Section Structure:**<br>Dense, unstructured prose with high-level promotional copy and generic claims ("our network of relocation specialists is equipped...") | **Section Structure:**<br>Time-bound action headers (`3 months before`, `6-8 weeks before`) + Scannable bullet points with specific numeric data points (e.g., *4-8 weeks transit*) |
+| **FAQ / Q&A Support:**<br>None. Answers are buried within general body text. | **FAQ / Q&A Support:**<br>Explicit, query-shaped headers (`What documents do I need...?`, `How far in advance should I plan...?`) mirroring real user search queries. |
+| **LLM Judge Score:** **11.5 / 100** | **LLM Judge Score:** **86.8 / 100** *(+75.3 point lift)* |
+
+---
+
+#### 2. Structural Blueprint Diff
+
+```diff
+SettleIn Global - International Relocation
+  
+- - Your World, Wherever You Go - SettleIn Global (Vague Headline)
++ + International Relocation Checklist: What to Do 3 Months Out (Search-Matched Title)
+
+- - Moving abroad is one of life's biggest adventures... (Brand Intro / Fluff)
++ + Quick Answer: Start visa and document work 3 months ahead... (Direct Extraction Passage)
+
+- - Dense paragraphs lacking clear subheadings or scannable lists
++ + Time-Based Headers (3 months before, 6-8 weeks before)
++ + Scannable Bulleted Checklists with concrete timeline estimates (4-8 weeks)
+
+- - Missing explicit answer blocks for targeted long-tail search queries
++ + Query-Shaped Subheadings (What documents do I need for an international relocation?)
++ + Sourced/Contextual Disclaimers (*Timelines reflect typical ranges as of 2026*)
+```
+
+#### 3. Why LLM Engines Prefer the GEO StructureAI Answer Engine Extraction Logic:
+
+Passage Retrieval Efficiency: LLMs look for standalone passages that directly answer user queries without needing surrounding context. The Quick Answer block in the GEO version provides an immediate candidate passage for AI Overviews.Header Matching: Query-shaped subheadings (e.g., What documents do I need...?) closely match semantic vector embeddings of user search prompts.Verifiable Precision: Replacing generic statements with specific metrics (e.g., 3 months ahead, 4-8 weeks ocean freight) boosts facts-per-sentence density, drastically improving citation confidence scores.  
+
+
+
 ### Method
 
 1. **Content pairs** (`content/`): three topics, each with a *baseline* version (typical brand-led marketing copy) and a *GEO-optimized* version applying the tactics with the strongest published evidence behind them - an answer-first opening, question-shaped subheadings that mirror real search queries, specific and sourced facts in place of vague claims, and scannable structure
@@ -27,7 +69,6 @@ The current analysis uses three pages of traditional (baseline) marketing copies
    - Experiments with Gemini (`gemini-3.6-flash`), which hit strict daily free-tier request quotas.
    - Migration to **Groq API** (`openai/gpt-oss-120b` / LLaMA-based architectures) for high-throughput, rate-limit-free evaluation
 5. **Paired significance test** (`src/analyze_results.py`): Each question is a matched pair (baseline score, optimized score) analyzed via a **Wilcoxon signed-rank test** on the paired scores, broken out by query type and topic
-
 
 ### Results 
 
